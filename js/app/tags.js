@@ -3,6 +3,8 @@
  */
 define(['jquery', 'app/util', 'app/selectors', 'app/bib'], function ($, util, selectors, bib) {
 
+    var typeTagsSelected = false;
+
     return {
 
         /**
@@ -15,9 +17,40 @@ define(['jquery', 'app/util', 'app/selectors', 'app/bib'], function ($, util, se
             $.each(tagCloudOptions, function () {
                 updateTagCloud(this);
             });
+            if (!typeTagsSelected) {
+                selectAllTypeKeywords();
+                typeTagsSelected = true;
+            }
         }
-
+        
     };
+
+    function selectAllTypeKeywords() {
+        $.each(bib.keywordFrequencies, function(keyword, frequency) {
+            if (keyword.lastIndexOf("type:", 0) === 0) {
+                var alreadySelected = false;
+                $.each(selectors.getSelectors(), function(i, selector) {
+                    if (selector && selector.type === 'keywords' && selector.text === keyword) {
+                        alreadySelected = true;
+                        return false; 
+                    }
+                });
+                
+                if (!alreadySelected) {
+                    window.toggleSelector('keywords', keyword);
+                }
+            }
+        });
+        setTimeout(function() {
+            if (window.myLayout) {
+                window.myLayout.resizeAll();
+            } else if (typeof $.fn.layout !== 'undefined') {
+                $('body').layout().resizeAll();
+            }
+            $('#selectors_container').css('height', 'auto');
+            $(window).trigger('resize');
+        }, 200);
+    }
 
     function updateTagCloud(options) {
         parseEntries(options);
@@ -170,6 +203,7 @@ define(['jquery', 'app/util', 'app/selectors', 'app/bib'], function ($, util, se
     }
 
     function appendTagDivs(name, title, tagDivs, element) {
+        
         tagDivs = tagDivs.sort(function (a, b) {
             var nA = parseInt(a.attr('value'));
             var nB = parseInt(b.attr('value'));
